@@ -1,13 +1,21 @@
+body {
+  background: url('./background.svg') rgba(51,0,25,.75);
+  background-size: cover;
+  background-blend-mode: overlay;
+} 
+
 #root {
   max-width: 1280px;
+  min-width:250px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
   font-family: Inter,sans-serif;
+  
 }
 
 .title {
-  font-size:3.5em;
+  font-size:3em;
   animation: fadeIn 1s;
 }
 
@@ -20,7 +28,7 @@
 }
 
 .subtitle {
-  font-size:1.5rem;
+  font-size:1.5em;
   color: #9ca9b3;
   animation: delayedFadeIn 1s;
 }
@@ -34,4 +42,21 @@
   0% {opacity: 0}
   50% {opacity: 0;}
   100% {opacity: 1;}
+}
+
+.lineItem {
+  position: relative;
+  background-color: transparent;
+  border: solid grey 2px;
+  border-radius: 10px;
+  text-align: center;
+  font-size:1rem;
+  display:block;
+  margin:10px;
+  padding:10px;
+  
+}
+
+.lineItem svg {
+  vertical-align: middle;
 }
