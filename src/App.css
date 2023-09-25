@@ -1,5 +1,5 @@
 body {
-  background: url('./background.svg') rgba(51,0,25,.75);
+  background: url('./assets/background.svg') rgba(51,0,25,.75);
   background-size: cover;
   background-blend-mode: overlay;
 } 
