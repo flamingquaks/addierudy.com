@@ -10,7 +10,7 @@ const DigitalContactCard = () => {
     name: "Addie Rudy",
     title: "Sr. Solutions Architect, Generative AI Specialist",
     email: "addie@addierudy.com",
-    phone: "+1 (678) 602-2545)",
+    phone: "+1 (678) 602-2545",
     website: "addierudy.com",
     location: "Pittsboro, NC",
     linkedin: "linkedin.com/in/addierudy",
