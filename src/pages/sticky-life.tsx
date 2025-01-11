@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Download } from 'lucide-react';
+// import { Upload, Download } from 'lucide-react';
 
 interface Position {
   x: number;
@@ -181,22 +181,22 @@ const StickyLife: React.FC = () => {
     }));
   };
 
-  // Handle file upload
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>): void => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e: ProgressEvent<FileReader>) => {
-        setGameState(prev => ({
-          ...prev,
-          currentMap: e.target?.result as string,
-          playerPos: { x: 100, y: 100 },
-          velocity: { x: 0, y: 0 }
-        }));
-      };
-      reader.readAsText(file);
-    }
-  };
+  // // Handle file upload
+  // const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>): void => {
+  //   const file = event.target.files?.[0];
+  //   if (file) {
+  //     const reader = new FileReader();
+  //     reader.onload = (e: ProgressEvent<FileReader>) => {
+  //       setGameState(prev => ({
+  //         ...prev,
+  //         currentMap: e.target?.result as string,
+  //         playerPos: { x: 100, y: 100 },
+  //         velocity: { x: 0, y: 0 }
+  //       }));
+  //     };
+  //     reader.readAsText(file);
+  //   }
+  // };
 
   const PLAYER_HEIGHT = 40;
   const PLAYER_WIDTH = 20;
