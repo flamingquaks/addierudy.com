@@ -62,25 +62,7 @@ const StickyLife: React.FC = () => {
 
   // Add reload function
   const reloadGame = () => {
-    setGameState({
-      playerPos: { x: 100, y: 50 }, // Start near top of screen
-      velocity: { x: 0, y: 0 },
-      isJumping: false,
-      facingRight: true,
-      isRunning: false,
-      currentMap: null,
-      coins: [],
-      spikes: [],
-      score: 0,
-      lives: INITIAL_LIVES,
-      lastGroundTime: Date.now(),
-      canJump: true,
-      gameOver: false
-    });
-    initializeGameElements();
-    if (debugMode.current) {
-      console.debug('Game reloaded with debug mode on');
-    }
+   window.location.reload();
   };
 
   // Make both debug and reload available globally
