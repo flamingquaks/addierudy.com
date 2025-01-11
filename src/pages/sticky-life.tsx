@@ -54,7 +54,52 @@ const COIN_VALUE: number = 10;
 const COLLISION_THRESHOLD: number = 20;
 const MAX_FALL_SPEED: number = 12;
 
+const generateRandomPlatforms = (): string => {
+  const platforms = [];
+  const platformCount = Math.floor(Math.random() * 4) + 5; // 5 to 8 platforms
+  const minVerticalSpacing = 60; // Minimum vertical spacing between platforms
+  const maxVerticalSpacing = 100; // Fixed maximum vertical spacing to ensure reachability
 
+  // Main long platform at the bottom
+  platforms.push('<rect x="0" y="580" width="800" height="100" fill="#3C8D2F"/>');
+  platforms.push('<rect x="0" y="530" width="800" height="15" fill="#8B4513"/>');
+
+  let lastY = 530; // Start from the top of the main platform
+
+  for (let i = 0; i < platformCount; i++) {
+    const width = 100 + Math.random() * 200;
+    const x = Math.random() * (800 - width);
+    const y = Math.max(100, lastY - minVerticalSpacing - Math.random() * (maxVerticalSpacing - minVerticalSpacing)); // Ensure minimum and maximum vertical spacing
+    platforms.push(`<rect x="${x}" y="${y}" width="${width}" height="15" fill="#8B4513"/>`);
+    lastY = y; // Update lastY to the current platform's y position
+  }
+
+  return platforms.join('');
+};
+
+const initialPlatforms = generateRandomPlatforms();
+
+const defaultMap: string = `
+  <svg viewBox="0 0 800 600" width="800" height="600">
+    <defs>
+      <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" style="stop-color:#1E90FF"/>
+        <stop offset="100%" style="stop-color:#87CEEB"/>
+      </linearGradient>
+    </defs>
+    
+    <!-- Sky background -->
+    <rect width="800" height="600" fill="url(#skyGradient)"/>
+    
+    <!-- Platforms - these will have collision -->
+    ${initialPlatforms}
+    
+    <!-- Decorative elements - no collision -->
+    <circle cx="700" cy="80" r="30" fill="#FFD700"/>
+    <path d="M 50,50 Q 75,40 100,50 T 150,50" fill="white" opacity="0.8"/>
+    <path d="M 250,80 Q 275,70 300,80 T 350,80" fill="white" opacity="0.8"/>
+  </svg>
+`;
 
 const StickyLife: React.FC = () => {
   // Add debug mode ref
@@ -99,45 +144,34 @@ const StickyLife: React.FC = () => {
   const animationFrameRef = useRef<number>();
   const keysPressed = useRef<KeysPressed>({});
 
-  const defaultMap: string = `
-    <svg viewBox="0 0 800 600" width="800" height="600">
-      <defs>
-        <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" style="stop-color:#1E90FF"/>
-          <stop offset="100%" style="stop-color:#87CEEB"/>
-        </linearGradient>
-      </defs>
-      
-      <!-- Sky background -->
-      <rect width="800" height="600" fill="url(#skyGradient)"/>
-      
-      <!-- Platforms - these will have collision -->
-      <rect x="0" y="500" width="800" height="100" fill="#3C8D2F"/>
-      <rect x="0" y="450" width="800" height="15" fill="#8B4513"/>
-      <rect x="100" y="300" width="200" height="15" fill="#8B4513"/>
-      <rect x="500" y="200" width="200" height="15" fill="#8B4513"/>
-      <rect x="300" y="400" width="200" height="15" fill="#8B4513"/>
-      
-      <!-- Decorative elements - no collision -->
-      <circle cx="700" cy="80" r="30" fill="#FFD700"/>
-      <path d="M 50,50 Q 75,40 100,50 T 150,50" fill="white" opacity="0.8"/>
-      <path d="M 250,80 Q 275,70 300,80 T 350,80" fill="white" opacity="0.8"/>
-    </svg>
-  `;
-
   // Initialize game elements
   const initializeGameElements = (): void => {
-    const newCoins: Coin[] = Array.from({ length: 10 }, (_, i) => ({
-      id: i,
-      x: 100 + Math.random() * 600,
-      y: 100 + Math.random() * 400,
-      collected: false
-    }));
+    const platforms = initialPlatforms.match(/<rect x="(\d+)" y="(\d+)" width="(\d+)" height="(\d+)"/g) || [];
+    const platformRects = platforms.map(platform => {
+      const [, x, y, width, height] = platform.match(/<rect x="(\d+)" y="(\d+)" width="(\d+)" height="(\d+)"/) || [];
+      return { x: parseInt(x), y: parseInt(y), width: parseInt(width), height: parseInt(height) };
+    });
+
+    const isCoinOverlapping = (coinX: number, coinY: number) => {
+      return platformRects.some(platform => 
+        coinX >= platform.x && coinX <= platform.x + platform.width &&
+        coinY >= platform.y && coinY <= platform.y + platform.height
+      );
+    };
+
+    const newCoins: Coin[] = Array.from({ length: 10 }, (_, i) => {
+      let x, y;
+      do {
+        x = 100 + Math.random() * 600;
+        y = 50 + Math.random() * 300; // Raise the lowest point for coins
+      } while (isCoinOverlapping(x, y));
+      return { id: i, x, y, collected: false };
+    });
 
     const newSpikes: Spike[] = Array.from({ length: 5 }, (_, i) => ({
       id: i,
       x: 150 + Math.random() * 500,
-      y: 100 + Math.random() * 400
+      y: 100 + Math.random() * 350 // Ensure spikes are above the bottom platform
     }));
 
     setGameState(prev => ({
@@ -311,15 +345,10 @@ const StickyLife: React.FC = () => {
                 newState.gameOver = true;
               }
               
-              // Bounce player away from spike
-              newState.velocity = {
-                x: (prev.playerPos.x - spike.x) * 0.5,
-                y: -10
-              };
-              newState.playerPos = {
-                x: prev.playerPos.x + (prev.playerPos.x - spike.x) * 0.5,
-                y: prev.playerPos.y - 50
-              };
+              // Reset player position to a safe location
+              newState.playerPos = { x: 100, y: 100 };
+              newState.velocity = { x: 0, y: 0 };
+              newState.isJumping = false;
             }
           });
 
@@ -337,6 +366,13 @@ const StickyLife: React.FC = () => {
       }
     };
   }, [gameState.gameOver]);
+
+  // Check if all coins are collected
+  useEffect(() => {
+    if (gameState.coins.every(coin => coin.collected) && gameState.coins.length > 0) {
+      setGameState(prev => ({ ...prev, gameOver: true }));
+    }
+  }, [gameState.coins]);
 
   // Input handling
   useEffect(() => {
@@ -382,7 +418,7 @@ const StickyLife: React.FC = () => {
   }, [gameState.currentMap, gameState.gameOver]);
 
   return (
-    <div className="relative w-full h-screen bg-gray-900 flex items-center justify-center">
+    <div className="relative w-full h-screen bg-gray-900 flex flex-col items-center justify-center">
       <div 
         ref={gameRef}
         className="relative w-[800px] h-[600px] bg-gray-800 overflow-hidden"
@@ -423,6 +459,7 @@ const StickyLife: React.FC = () => {
 
         {/* Map Controls */}
         <div className="absolute top-4 right-4 flex gap-2">
+          {/*
           <label className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer flex items-center gap-2">
             <Upload size={20} />
             Upload Map
@@ -448,6 +485,13 @@ const StickyLife: React.FC = () => {
           >
             <Download size={20} />
             Download Map
+          </button>
+          */}
+          <button
+            onClick={reloadGame}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+          >
+            Reload Game
           </button>
         </div>
 
@@ -514,8 +558,19 @@ const StickyLife: React.FC = () => {
         {gameState.gameOver && (
           <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
             <div className="bg-white p-8 rounded-lg text-center">
-              <h2 className="text-2xl font-bold mb-4">Stick No More!</h2>
-              <p className="mb-4">Final Score: {gameState.score}</p>
+              {gameState.coins.every(coin => coin.collected) ? (
+                <>
+                  <h2 className="text-2xl font-bold mb-4">YOU WIN!</h2>
+                  <div className="fireworks">
+                    {/* Fireworks SVG or animation can be added here */}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-2xl font-bold mb-4">Stick No More!</h2>
+                  <p className="mb-4">Final Score: {gameState.score}</p>
+                </>
+              )}
               <button
                 onClick={resetGame}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg"
@@ -525,13 +580,13 @@ const StickyLife: React.FC = () => {
             </div>
           </div>
         )}
+      </div>
 
-        {/* Instructions */}
-        <div className="absolute bottom-4 text-gray-300 text-center">
-          <p>🏃‍♂️ Arrow Keys to run • Space to jump</p>
-          <p>💰 Collect golden coins • ⚠️ Avoid deadly spikes</p>
-          <p>🎮 Create your own world with custom SVG maps!</p>
-        </div>
+      {/* Instructions */}
+      <div className="mt-4 text-gray-300 text-center">
+        <p>🏃‍♂️ Arrow Keys to run • Space to jump</p>
+        <p>💰 Collect golden coins • ⚠️ Avoid deadly spikes</p>
+        <p>🎮 Create your own world with custom SVG maps!</p>
       </div>
     </div>
   );
