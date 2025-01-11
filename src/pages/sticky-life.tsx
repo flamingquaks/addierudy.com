@@ -52,13 +52,54 @@ const FRICTION: number = 0.85;
 const INITIAL_LIVES: number = 3;
 const COIN_VALUE: number = 10;
 const COLLISION_THRESHOLD: number = 20;
-// const MAX_VELOCITY: number = 12;
+const MAX_FALL_SPEED: number = 12;
+const MAX_RISE_SPEED: number = 15;
+const COLLISION_MARGIN: number = 30; // New constant for more forgiving collisions
 // const COYOTE_TIME: number = 150; // milliseconds player can jump after leaving platform
 
 const StickyLife: React.FC = () => {
+  // Add debug mode ref
+  const debugMode = useRef(false);
+
+  // Add reload function
+  const reloadGame = () => {
+    setGameState({
+      playerPos: { x: 100, y: 50 }, // Start near top of screen
+      velocity: { x: 0, y: 0 },
+      isJumping: false,
+      facingRight: true,
+      isRunning: false,
+      currentMap: null,
+      coins: [],
+      spikes: [],
+      score: 0,
+      lives: INITIAL_LIVES,
+      lastGroundTime: Date.now(),
+      canJump: true,
+      gameOver: false
+    });
+    initializeGameElements();
+    if (debugMode.current) {
+      console.debug('Game reloaded with debug mode on');
+    }
+  };
+
+  // Make both debug and reload available globally
+  useEffect(() => {
+    (window as any).toggleDebugMode = () => {
+      debugMode.current = !debugMode.current;
+      console.log(`Debug mode ${debugMode.current ? 'enabled' : 'disabled'}`);
+    };
+    (window as any).reloadGame = reloadGame;
+    return () => {
+      delete (window as any).toggleDebugMode;
+      delete (window as any).reloadGame;
+    };
+  }, []);
+
   // Game state
   const [gameState, setGameState] = useState<GameState>({
-    playerPos: { x: 100, y: 100 },
+    playerPos: { x: 100, y: 50 }, // Start near top of screen
     velocity: { x: 0, y: 0 },
     isJumping: false,
     facingRight: true,
@@ -91,6 +132,7 @@ const StickyLife: React.FC = () => {
       
       <!-- Platforms - these will have collision -->
       <rect x="0" y="500" width="800" height="100" fill="#3C8D2F"/>
+      <rect x="0" y="450" width="800" height="15" fill="#8B4513"/>
       <rect x="100" y="300" width="200" height="15" fill="#8B4513"/>
       <rect x="500" y="200" width="200" height="15" fill="#8B4513"/>
       <rect x="300" y="400" width="200" height="15" fill="#8B4513"/>
@@ -141,55 +183,69 @@ const StickyLife: React.FC = () => {
     }
   };
 
-  // Check collision with SVG elements
-  const checkCollision = (): { collided: boolean; groundLevel: number | null } => {
+  const PLAYER_HEIGHT = 40;
+  const PLAYER_WIDTH = 20;
+
+  const checkCollision = (): { collided: boolean; groundLevel: number | null; sideHit: boolean } => {
     const svg = gameRef.current?.querySelector('svg');
-    if (!svg) return { collided: false, groundLevel: null };
+    if (!svg) return { collided: false, groundLevel: null, sideHit: false };
 
-    const platformElements = [
-      ...Array.from(svg.querySelectorAll('rect')),
-      ...Array.from(svg.querySelectorAll('path')).filter(path => {
-        const fill = path.getAttribute('fill');
-        return fill && ['#8B4513', '#3C8D2F'].includes(fill);
-      })
-    ];
+    const platforms = Array.from(svg.querySelectorAll('rect')).filter(rect => {
+      const fill = rect.getAttribute('fill');
+      return fill && !fill.includes('url(#skyGradient)');
+    });
 
-    const playerBottom = gameState.playerPos.y + 40;
-    const playerRight = gameState.playerPos.x + 20;
-    let lowestGround: number | null = null;
+    // Player hitbox
+    const player = {
+      left: gameState.playerPos.x,
+      right: gameState.playerPos.x + PLAYER_WIDTH,
+      top: gameState.playerPos.y,
+      bottom: gameState.playerPos.y + PLAYER_HEIGHT,
+      centerX: gameState.playerPos.x + PLAYER_WIDTH / 2,
+      nextBottom: gameState.playerPos.y + PLAYER_HEIGHT + gameState.velocity.y
+    };
 
-    for (const element of platformElements) {
-      const bbox = element.getBBox();
-      
-      // Check if player is within horizontal bounds of platform
-      if (playerRight >= bbox.x && 
-          gameState.playerPos.x <= bbox.x + bbox.width) {
+    // Find the highest platform we're going to hit
+    let platformToLandOn = null;
+    let minDistance = Infinity;
+
+    for (const platform of platforms) {
+      const bbox = platform.getBBox();
+
+      // Only check platforms we're above and falling towards
+      if (player.centerX >= bbox.x && 
+          player.centerX <= bbox.x + bbox.width && 
+          player.bottom <= bbox.y && 
+          player.nextBottom >= bbox.y) {
+
+        const distance = bbox.y - player.bottom;
         
-        // Check for ground collision
-        if (playerBottom >= bbox.y && 
-            gameState.playerPos.y <= bbox.y + bbox.height) {
-          
-          // Landing on top of platform
-          if (gameState.velocity.y > 0 && 
-              playerBottom - gameState.velocity.y <= bbox.y + 5) {
-            lowestGround = bbox.y;
-          }
-          
-          // Side collision
-          if (gameState.velocity.x !== 0) {
-            setGameState(prev => ({
-              ...prev,
-              velocity: { ...prev.velocity, x: 0 }
-            }));
-            return { collided: true, groundLevel: null };
-          }
+        if (debugMode.current) {
+          console.debug('Platform check:', {
+            platformY: bbox.y,
+            playerBottom: player.bottom,
+            distance,
+            velocity: gameState.velocity.y
+          });
+        }
+
+        if (distance < minDistance) {
+          minDistance = distance;
+          platformToLandOn = bbox.y;
         }
       }
     }
 
-    return { 
-      collided: lowestGround !== null,
-      groundLevel: lowestGround
+    const willLand = platformToLandOn !== null && gameState.velocity.y > 0;
+
+    if (debugMode.current && willLand) {
+      console.debug('Will land on:', platformToLandOn);
+    }
+
+    return {
+      collided: willLand,
+      groundLevel: platformToLandOn,
+      sideHit: false
     };
   };
 
@@ -218,30 +274,37 @@ const StickyLife: React.FC = () => {
             newState.velocity.x = -MOVE_SPEED;
             newState.facingRight = false;
             newState.isRunning = true;
-          }
-          if (keysPressed.current.ArrowRight) {
+          } else if (keysPressed.current.ArrowRight) {
             newState.velocity.x = MOVE_SPEED;
             newState.facingRight = true;
             newState.isRunning = true;
+          } else {
+            newState.velocity.x = 0; // Stop moving when no key is pressed
+            newState.isRunning = false;
           }
+
+          // Only allow jumping if on ground
           if (keysPressed.current.Space && !prev.isJumping) {
             newState.velocity.y = JUMP_FORCE;
             newState.isJumping = true;
           }
 
-          // Update position and physics
-          newState.playerPos = {
-            x: prev.playerPos.x + prev.velocity.x,
-            y: prev.playerPos.y + prev.velocity.y
-          };
+          // Apply gravity before collision check
+          newState.velocity.y = Math.min(MAX_FALL_SPEED, prev.velocity.y + GRAVITY);
 
-          newState.velocity = {
-            x: prev.velocity.x * FRICTION,
-            y: prev.velocity.y + GRAVITY
-          };
-
-          // Check collisions
-          checkCollision();
+          // Check for landing before updating position
+          const { collided, groundLevel } = checkCollision();
+          
+          // Update position
+          newState.playerPos.x += newState.velocity.x * FRICTION;
+          
+          if (collided && groundLevel !== null) {
+            newState.playerPos.y = groundLevel - PLAYER_HEIGHT;
+            newState.velocity.y = 0;
+            newState.isJumping = false;
+          } else {
+            newState.playerPos.y += newState.velocity.y;
+          }
 
           // Keep player in bounds
           newState.playerPos.x = Math.max(0, Math.min(newState.playerPos.x, 780));
@@ -297,10 +360,24 @@ const StickyLife: React.FC = () => {
   // Input handling
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
+      if (e.code === 'KeyR') {
+        reloadGame();
+        return;
+      }
+      // Check both e.code and e.key for Space
+      if (e.code === 'Space' || e.key === ' ') {
+        keysPressed.current.Space = true;
+        return;
+      }
       keysPressed.current[e.code] = true;
     };
 
     const handleKeyUp = (e: KeyboardEvent): void => {
+      // Check both e.code and e.key for Space
+      if (e.code === 'Space' || e.key === ' ') {
+        keysPressed.current.Space = false;
+        return;
+      }
       keysPressed.current[e.code] = false;
       if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
         setGameState(prev => ({ ...prev, isRunning: false }));
