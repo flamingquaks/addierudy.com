@@ -45,17 +45,16 @@ interface GameState {
 }
 
 // Game constants
-const GRAVITY: number = 0.35;
+const GRAVITY: number = 0.5;
 const JUMP_FORCE: number = -13;
-const MOVE_SPEED: number = 4;
+const MOVE_SPEED: number = 2;
 const FRICTION: number = 0.85;
 const INITIAL_LIVES: number = 3;
 const COIN_VALUE: number = 10;
 const COLLISION_THRESHOLD: number = 20;
 const MAX_FALL_SPEED: number = 12;
-const MAX_RISE_SPEED: number = 15;
-const COLLISION_MARGIN: number = 30; // New constant for more forgiving collisions
-// const COYOTE_TIME: number = 150; // milliseconds player can jump after leaving platform
+
+
 
 const StickyLife: React.FC = () => {
   // Add debug mode ref
