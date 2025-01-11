@@ -417,8 +417,20 @@ const StickyLife: React.FC = () => {
     }
   }, [gameState.currentMap, gameState.gameOver]);
 
+  useEffect(() => {
+    document.title = "StickyLife";
+  }, []);
+
   return (
     <div className="relative w-full h-screen bg-gray-900 flex flex-col items-center justify-center">
+      {/* Title */}
+      <div className="text-center mb-4">
+        <h1 className="text-4xl font-bold text-white mb-2 text-shadow-lg">
+          StickyLife
+        </h1>
+        <p className="text-blue-300">Stick around, collect coins, survive!</p>
+      </div>
+
       <div 
         ref={gameRef}
         className="relative w-[800px] h-[600px] bg-gray-800 overflow-hidden"
@@ -545,14 +557,6 @@ const StickyLife: React.FC = () => {
             </svg>
           </div>
         ))}
-
-        {/* Title */}
-        <div className="absolute top-16 left-1/2 transform -translate-x-1/2 text-center">
-          <h1 className="text-4xl font-bold text-white mb-2 text-shadow-lg">
-            StickyLife
-          </h1>
-          <p className="text-blue-300">Stick around, collect coins, survive!</p>
-        </div>
 
         {/* Game Over Screen */}
         {gameState.gameOver && (
