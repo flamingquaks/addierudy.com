@@ -4,6 +4,7 @@ import './App.css';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import addieImage from './assets/addie.jpeg';
+import bluesky from './assets/bluesky.svg';
 
 const DigitalContactCard = () => {
   const contactInfo = {
@@ -15,13 +16,20 @@ const DigitalContactCard = () => {
     location: "Pittsboro, NC",
     linkedin: "linkedin.com/in/addierudy",
     github: "github.com/flamingquaks",
+    bluesky: "bsky.app/profile/flamingquaks.com",
     avatar: addieImage,
   };
 
   const ContactItem = ({ icon: Icon, text, href }: { icon: any, text: string, href?: string }) => (
-      <div className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors">
-        {typeof Icon === 'function' ? <Icon size={18} /> : <Icon sx={{ fontSize: 18 }} />}
-        {href ? (
+    <div className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors">
+      {typeof Icon === 'string' ? (
+        <img src={Icon} alt="" className="w-[18px] h-[18px]" />
+      ) : typeof Icon === 'function' ? (
+        <Icon size={18} />
+      ) : (
+        <Icon sx={{ fontSize: 18 }} />
+      )}
+      {href ? (
         <a href={href} target="_blank" rel="noopener noreferrer" className="hover:underline">
           {text}
         </a>
@@ -75,6 +83,11 @@ const DigitalContactCard = () => {
             text="GitHub Profile" 
             href={`https://${contactInfo.github}`}
           />
+          <ContactItem
+            icon={bluesky}
+            text="Bluesky Profile"
+            href={`https://${contactInfo.bluesky}`}
+            />
         </div>
       </CardContent>
     </Card>
