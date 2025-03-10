@@ -18,17 +18,18 @@ const DigitalContactCard = () => {
     github: "github.com/flamingquaks",
     bluesky: "bsky.app/profile/flamingquaks.com",
     avatar: addieImage,
+    mediumProfile: "flamingquaks.medium.com"
   };
 
-  const ContactItem = ({ icon: Icon, text, href }: { icon: any, text: string, href?: string }) => (
+  const ContactItem = ({ icon: Icon, text, href }: { icon?: any, text: string, href?: string }) => (
     <div className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors">
       {typeof Icon === 'string' ? (
         <img src={Icon} alt="" className="w-[18px] h-[18px]" />
       ) : typeof Icon === 'function' ? (
         <Icon size={18} />
-      ) : (
+      ) : typeof Icon !== undefined ? (
         <Icon sx={{ fontSize: 18 }} />
-      )}
+      ) : null}
       {href ? (
         <a href={href} target="_blank" rel="noopener noreferrer" className="hover:underline">
           {text}
@@ -87,6 +88,10 @@ const DigitalContactCard = () => {
             icon={bluesky}
             text="Bluesky Profile"
             href={`https://${contactInfo.bluesky}`}
+            />
+          <ContactItem
+            text="Medium Profile"
+            href={`https://${contactInfo.mediumProfile}`}
             />
         </div>
       </CardContent>
