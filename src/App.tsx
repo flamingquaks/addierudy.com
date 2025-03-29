@@ -5,6 +5,7 @@ import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import addieImage from './assets/addie.jpeg';
 import bluesky from './assets/bluesky.svg';
+import medium from './assets/medium.svg';
 
 const DigitalContactCard = () => {
   const contactInfo = {
@@ -18,6 +19,7 @@ const DigitalContactCard = () => {
     github: "github.com/flamingquaks",
     bluesky: "bsky.app/profile/flamingquaks.com",
     avatar: addieImage,
+    medium: "flamingquaks.medium.com"
   };
 
   const ContactItem = ({ icon: Icon, text, href }: { icon: any, text: string, href?: string }) => (
@@ -87,6 +89,11 @@ const DigitalContactCard = () => {
             icon={bluesky}
             text="Bluesky Profile"
             href={`https://${contactInfo.bluesky}`}
+            />
+          <ContactItem
+            icon={medium}
+            text="Medium Profile"
+            href={`https://${contactInfo.medium}`}
             />
         </div>
       </CardContent>
